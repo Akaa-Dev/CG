@@ -66,16 +66,86 @@ for (let index = 0; index < 4; index++) {
 
   table.add(leg);  
 }
-
-
+for (let index = 0; index < 2; index++) {
+  const x = [12.4,-12.4]
+  const cushGeo = new THREE.BoxGeometry(0.6,1,12.2);
+  const cushMat = new THREE.MeshBasicMaterial( {color: 0xC17817} );
+  const cushion = new THREE.Mesh(cushGeo,cushMat);
+  cushion.translateX(x[index]);
+  cushion.translateY(-0.25);
+  table.add(cushion);
+}
+for (let index = 0; index < 2; index++) {
+  const z = [6.2,-6.2]
+  const cushGeo = new THREE.BoxGeometry(25.4,1,0.5);
+  const cushMat = new THREE.MeshBasicMaterial( {color: 0xC17817} );
+  const cushion = new THREE.Mesh(cushGeo,cushMat);
+  cushion.translateZ(z[index]);
+  cushion.translateY(-0.25);
+  table.add(cushion);
+}
 floor.add(table);
+
+//* Add balls
+const ballRadius = 0.25;
+const ballRadiusSq = ballRadius * ballRadius;
+const ballGeo = new THREE.SphereGeometry(ballRadius, 18, 18);
+
+// Create ball 1 with texture
+const ball1 = new THREE.Mesh(ballGeo,  new THREE.MeshBasicMaterial( {color: 0x0000ff,
+                                                                     wireframe:true}));
+ball1.translateY(-0.5);
+
+// Create ball 2 with texture
+const ball2 =  new THREE.Mesh(ballGeo,  new THREE.MeshBasicMaterial( {color: 0xff0000,
+                                                                      wireframe:true}));
+
+ball2.translateY(-0.5);
+ball2.translateX(2);
+table.add(ball1,ball2);
+
+
+
+// speed and current position of translational motion
+const slowDown = 2;
+//let u1 = //new THREE.Vector3(3+2*Math.random(), 0, 3+2*Math.random()).divideScalar(slowDown);
+//ball1.position.copy(new THREE.Vector3(-floorX/5, ballRadius, -floorZ/5));
+//let u2 = //new THREE.Vector3(3+2*Math.random(), 0, -3+2*Math.random()).divideScalar(slowDown);
+//ball2.position.copy(new THREE.Vector3(-floorX/5, ballRadius, floorZ/5));
+
 
 // * Render loop
 const controls = new TrackballControls( camera, renderer.domElement );
-
+const computerClock = new THREE.Clock();
 function render() {
   requestAnimationFrame(render);
 
+  const dt = computerClock.getDelta();
+
+  // update position of ball:
+ // ball2.position.add(u2.clone().multiplyScalar(dt));
+  //ball1.position.add(u1.clone().multiplyScalar(dt));
+
+
+  // Implement reflection: the axis of rotation has to be updated since the direction of the speed changes!
+  /*if(ball1.position.x> 12.2) {
+    u1.x = - Math.abs(u1.x);
+  }
+  if(ball1.position.x< -12.2) {
+    u1.x = - Math.abs(u1.x);
+  }
+  if(ball1.position.z > 6.2) {
+    u1.z = - Math.abs(u1.z);
+  }
+  if(ball1.position.z <-6.2) {
+    u1.z = - Math.abs(u1.z);
+  }
+  if(ball2.position.x> floorX/5) {
+    u2.x = - Math.abs(u2.x);
+  }
+  if(ball2.position.z > 6.2) {
+    u2.z = - Math.abs(u2.z);
+  }*/
 
   controls.update();
   renderer.render(scene, camera);
