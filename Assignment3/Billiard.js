@@ -86,68 +86,135 @@ for (let index = 0; index < 2; index++) {
 }
 floor.add(table);
 
+const planeNormal = new THREE.Vector3(0,1,0);
+const ballRadius = 0.5;
+let ballArray = [];
+let posArray =[];
 //* Add balls
-const ballRadius = 0.25;
-const ballRadiusSq = ballRadius * ballRadius;
-const ballGeo = new THREE.SphereGeometry(ballRadius, 18, 18);
+for (let index = 0; index < 8; index++) {
+  const ball = new THREE.Mesh(new THREE.SphereGeometry(ballRadius, 8,4),
+                            new THREE.MeshBasicMaterial( {color: 0x0000ff,
+                                                          wireframeLinewidth:2,
+                                                          wireframe:true}));
+                                               
+ball.matrixAutoUpdate = false;
+ballArray.push(ball);
+}
 
-// Create ball 1 with texture
-const ball1 = new THREE.Mesh(ballGeo,  new THREE.MeshBasicMaterial( {color: 0x0000ff,
-                                                                     wireframe:true}));
-ball1.translateY(-0.5);
-
-// Create ball 2 with texture
-const ball2 =  new THREE.Mesh(ballGeo,  new THREE.MeshBasicMaterial( {color: 0xff0000,
-                                                                      wireframe:true}));
-
-ball2.translateY(-0.5);
-ball2.translateX(2);
-table.add(ball1,ball2);
-
-
+ballArray.forEach(ball => {
+  table.add(ball);
+});
 
 // speed and current position of translational motion
-const slowDown = 2;
-//let u1 = //new THREE.Vector3(3+2*Math.random(), 0, 3+2*Math.random()).divideScalar(slowDown);
-//ball1.position.copy(new THREE.Vector3(-floorX/5, ballRadius, -floorZ/5));
-//let u2 = //new THREE.Vector3(3+2*Math.random(), 0, -3+2*Math.random()).divideScalar(slowDown);
-//ball2.position.copy(new THREE.Vector3(-floorX/5, ballRadius, floorZ/5));
+let speedArray =[];
+for (let index = 1; index <= ballArray.length; index++) {
+  const ballSpeed = new THREE.Vector3(index*Math.random(), 0, index*Math.random());
+  speedArray.push(ballSpeed);
+}
+//TODO: recheck inital placement
+for (let index = 0; index < ballArray.length; index++) {
+  let definedPos =[];
+
+  const x = Math.random()*23/2;
+  const z = Math.random()*11/2;
+  const randomSignX = Math.round(Math.random()*1);
+  const randomSignZ = Math.round(Math.random()*1);
+  const randomX = randomSignX==0? x:x*-1;
+  const randomZ = randomSignZ==0?z:z*-1;
+  const ballPos  = new THREE.Vector3(randomX, -1, randomZ);
+
+  if(!definedPos.includes(ballPos)){
+    definedPos.push(ballPos);
+    posArray.push(ballPos);
+  }
+  
+}
 
 
-// * Render loop
-const controls = new TrackballControls( camera, renderer.domElement );
+//* Render loop
 const computerClock = new THREE.Clock();
+const controls = new TrackballControls( camera , canvas );
 function render() {
   requestAnimationFrame(render);
 
-  const dt = computerClock.getDelta();
+  // Reflection at the cushion
+  for (let index = 0; index < posArray.length; index++) {
+    if(posArray[index].x> 23.2/2) {
+      speedArray[index].x = - Math.abs(speedArray[index].x*(0.8));   
+    }
+    if(posArray[index].z > 11/2) {
+      speedArray[index].z = - Math.abs(speedArray[index].z*(0.8));
+    }
+    if(posArray[index].x<-23.2/2){
+      speedArray[index].x = + Math.abs(speedArray[index].x*(0.8));
+    }
+    if(posArray[index].z<-11/2){
+      speedArray[index].z = +Math.abs(speedArray[index].z*(0.8));
+    }
+    
+  }
+
+  // Motion of the ball in this time step
+  const h = computerClock.getDelta();  // important: call before getElapsedTime!!!
+  const t = computerClock.getElapsedTime();
 
   // update position of ball:
- // ball2.position.add(u2.clone().multiplyScalar(dt));
-  //ball1.position.add(u1.clone().multiplyScalar(dt));
+  for (let index = 0; index < posArray.length; index++) {
+    posArray[index].add(speedArray[index].clone().multiplyScalar(h));
+   
+  }
+  let omegaArray =[];
+  let drArray =[];
+  let axisArray =[];
+  
+  speedArray.forEach(ballSpeed=>{
+    const om = ballSpeed.length() / ballRadius;
+    const axis = planeNormal.clone().cross(ballSpeed).normalize();
+    omegaArray.push(om);
+    axisArray.push(axis);
+  })
+  for (let index = 0; index < omegaArray.length; index++) {
+    const dR = new THREE.Matrix4().makeRotationAxis(axisArray[index], omegaArray[index]*h);
+    drArray.push(dR);
+  }
 
-
-  // Implement reflection: the axis of rotation has to be updated since the direction of the speed changes!
-  /*if(ball1.position.x> 12.2) {
-    u1.x = - Math.abs(u1.x);
+  for (let index = 0; index < ballArray.length; index++) {
+    ballArray[index].matrix.premultiply(drArray[index]);
+    ballArray[index].matrix.setPosition(posArray[index]);
   }
-  if(ball1.position.x< -12.2) {
-    u1.x = - Math.abs(u1.x);
+  
+for (let i = 0; i< ballArray.length; i++) {
+   
+    for (let j=i+1; j < ballArray.length; j++) {
+      if(isCollided(i,j)){
+        collision(i,j);
+      }  
+    }
   }
-  if(ball1.position.z > 6.2) {
-    u1.z = - Math.abs(u1.z);
-  }
-  if(ball1.position.z <-6.2) {
-    u1.z = - Math.abs(u1.z);
-  }
-  if(ball2.position.x> floorX/5) {
-    u2.x = - Math.abs(u2.x);
-  }
-  if(ball2.position.z > 6.2) {
-    u2.z = - Math.abs(u2.z);
-  }*/
 
   controls.update();
   renderer.render(scene, camera);
 }
 render();
+
+function collision(ball1,ball2){
+let d = new THREE.Vector3();
+let difference = new THREE.Vector3();
+let eq = new THREE.Vector3();
+d.copy(posArray[ball1]).sub(posArray[ball2]);
+difference.copy(speedArray[ball1]).sub(speedArray[ball2]);
+eq=d.multiplyScalar((difference.dot(d)/Math.abs(d.length() *d.length())));
+
+console.log(eq);
+speedArray[ball1].sub(eq);
+speedArray[ball2].add(eq);
+}
+
+function isCollided(ball1, ball2){
+  let gap = new THREE.Vector3();
+  gap.copy(posArray[ball1]).sub(posArray[ball2]);
+  if(gap.length()<ballRadius*2){
+    return true;
+  }
+  return false;
+}
